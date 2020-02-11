@@ -26,31 +26,20 @@
  */
 package me.cookle.portalCore;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.Container;
+import org.bukkit.block.Sign;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import me.cookle.portalCore.PortalListener;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Chest;
-import org.bukkit.block.Dispenser;
-import org.bukkit.block.Dropper;
-import org.bukkit.block.Furnace;
-import org.bukkit.block.Hopper;
-import org.bukkit.block.Sign;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.event.Listener;
-import org.bukkit.inventory.FurnaceInventory;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class Main
 extends JavaPlugin {
@@ -58,7 +47,7 @@ extends JavaPlugin {
 
     public void onEnable() {
         plugin = this;
-        this.getServer().getPluginManager().registerEvents((Listener)new PortalListener(), plugin);
+        this.getServer().getPluginManager().registerEvents(new PortalListener(), plugin);
     }
 
     public void onDisable() {
@@ -84,75 +73,64 @@ extends JavaPlugin {
     }
 
     private static String getBlockData(Block block) {
-        BlockState tile;
         StringBuilder blockData = new StringBuilder();
-        if (block.getType() == Material.CHEST || block.getType() == Material.TRAPPED_CHEST) {
-            tile = (Chest)block.getState();
+
+        if (block instanceof Container){
+            Container container = (Container)block.getState();
             blockData.append("Inventory = ");
-            for (ItemStack i : tile.getInventory()) {
+            for (ItemStack i : container.getInventory()) {
                 if (i != null) {
                     blockData.append(i.getType().name()).append(":").append(i.getAmount()).append(",");
                     continue;
                 }
                 blockData.append("AIR:0,");
             }
-        }
-        if (block.getType() == Material.SIGN) {
-            tile = (Sign)block.getState();
+        } else if (block instanceof Sign){
+            Sign sign = (Sign)block.getState();
             blockData.append("Lines = ");
-            blockData.append(tile.getLine(0)).append(",");
-            blockData.append(tile.getLine(1)).append(",");
-            blockData.append(tile.getLine(2)).append(",");
-            blockData.append(tile.getLine(3));
-        }
-        if (block.getType() == Material.DISPENSER) {
-            tile = (Dispenser)block.getState();
-            blockData.append("Inventory = ");
-            for (ItemStack i : tile.getInventory()) {
-                if (i != null) {
-                    blockData.append(i.getType().name()).append(":").append(i.getAmount()).append(",");
-                    continue;
-                }
-                blockData.append("AIR:0,");
-            }
-        }
-        if (block.getType() == Material.DROPPER) {
-            tile = (Dropper)block.getState();
-            blockData.append("Inventory = ");
-            for (ItemStack i : tile.getInventory()) {
-                if (i != null) {
-                    blockData.append(i.getType().name()).append(":").append(i.getAmount()).append(",");
-                    continue;
-                }
-                blockData.append("AIR:0,");
-            }
-        }
-        if (block.getType() == Material.FURNACE) {
-            tile = (Furnace)block.getState();
-            blockData.append("Inventory = ");
-            for (ItemStack i : tile.getInventory()) {
-                if (i != null) {
-                    blockData.append(i.getType().name()).append(":").append(i.getAmount()).append(",");
-                    continue;
-                }
-                blockData.append("AIR:0,");
-            }
-        }
-        if (block.getType() == Material.HOPPER) {
-            tile = (Hopper)block.getState();
-            blockData.append("Inventory = ");
-            for (ItemStack i : tile.getInventory()) {
-                if (i != null) {
-                    blockData.append(i.getType().name()).append(":").append(i.getAmount()).append(",");
-                    continue;
-                }
-                blockData.append("AIR:0,");
-            }
+            blockData.append(String.join(",", sign.getLines()));
         }
         if (blockData.length() != 0) {
             return blockData.toString();
         }
         return null;
+
+//        switch (block.getType()){
+//            case CHEST:
+//            case TRAPPED_CHEST:
+//            case FURNACE:
+//            case HOPPER:
+//            case DROPPER:
+//            case DISPENSER:
+//            case SHULKER_BOX:
+//                Container container = (Container)block.getState();
+//                blockData.append("Inventory = ");
+//                for (ItemStack i : container.getInventory()) {
+//                    if (i != null) {
+//                        blockData.append(i.getType().name()).append(":").append(i.getAmount()).append(",");
+//                        continue;
+//                    }
+//                    blockData.append("AIR:0,");
+//                }
+//                break;
+//
+//            case OAK_SIGN:
+//            case BIRCH_SIGN:
+//            case SPRUCE_SIGN:
+//            case JUNGLE_SIGN:
+//            case DARK_OAK_SIGN:
+//            case ACACIA_SIGN:
+//                Sign sign = (Sign)block.getState();
+//                blockData.append("Lines = ");
+//                blockData.append(String.join(",", sign.getLines()));
+//                break;
+//            default:
+//                return null; // early return, no
+//        }
+//        if (blockData.length() != 0) {
+//            return blockData.toString();
+//        }
+//        return null;
     }
 
     static List<String> getPortalID(Location loc) {

@@ -15,12 +15,11 @@
 package me.cookle.portalCore;
 
 import java.util.List;
-import me.cookle.portalCore.Main;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
