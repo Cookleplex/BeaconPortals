@@ -1,7 +1,6 @@
 name: BeaconPortal
 version: ${version}
-description:
-  - Teleport between Beacons
+description: "Enables teleportation between Beacons by players"
 
 author: CookleTheThird
 website: https://www.spigotmc.org/resources/beacon-portals.66292/
