@@ -38,18 +38,19 @@ public class PortalListener implements Listener {
         Beacon beacon = (Beacon) block.getState();
         if (beacon.getTier() == 0) return;
 
-        List<String> thisID = Main.getPortalID(block.getLocation());
+        Location originLocation = block.getLocation();
+        List<String> thisID = Main.getPortalID(originLocation);
         if (thisID == null) return;
 
         World world = player.getWorld();
 
         if (!plugin.getConfig().contains(thisID.toString())) {
-            plugin.getConfig().set(thisID.toString(), Main.getStringFromLocation(block.getLocation()));
-            world.playSound(block.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 16, 1);
+            plugin.getConfig().set(thisID.toString(), Main.getStringFromLocation(originLocation));
+            world.playSound(originLocation, Sound.ITEM_FLINTANDSTEEL_USE, 16, 1);
         }
 
         for (int t = 1; t < 10; t++) {
-            List<String> otherID = Main.getPortalID(block.getLocation().clone().add(0.0, t, 0.0));
+            List<String> otherID = Main.getPortalID(originLocation.clone().add(0.0, t, 0.0));
             if (otherID == null) continue;
 
             String strLoc = plugin.getConfig().getString(otherID.toString());
@@ -57,6 +58,7 @@ public class PortalListener implements Listener {
 
             Location destinationLocation = Main.getLocationFromString(strLoc);
             Block destinationBlock = destinationLocation.getBlock();
+
             if (destinationBlock.getType() != Material.BEACON) {
                 plugin.getConfig().set(otherID.toString(), null);
                 continue;
@@ -77,33 +79,30 @@ public class PortalListener implements Listener {
                 continue;
             }
 
-            Location loc = player.getLocation();
+            Location locationOffset = destinationLocation.subtract(originLocation);
 
             Collection<Mob> leashedEntities = world.getNearbyEntities(
                     BoundingBox.of(
-                            block.getLocation(), 3,3,3
+                            originLocation, 3,3,3
                     ))
                     .parallelStream().filter(entity -> entity instanceof Mob)
                     .map(entity -> (Mob)entity)
                     .filter(mob-> mob.isLeashed() && mob.getLeashHolder().equals(player))
                     .collect(Collectors.toSet());
 
-            world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+            world.playSound(originLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
 
-            destinationLocation.setPitch(loc.getPitch());
-            destinationLocation.setYaw(loc.getYaw());
+            Location playerDestination = player.getLocation();
+            playerDestination.add(locationOffset);
+            player.teleport(playerDestination);
+            world.playSound(playerDestination, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
 
-            destinationLocation.add(loc.getX()-loc.getBlockX(), 1, loc.getZ()-loc.getBlockZ());
-            player.teleport(destinationLocation);
-
-            Location locOffset = destinationLocation.subtract(loc);
             leashedEntities.forEach(mob -> {
                 Location mobLocation = mob.getLocation();
-                Location mobDestination = mobLocation.add(locOffset);
+                Location mobDestination = mobLocation.add(locationOffset);
                 mob.teleport(mobDestination);
                 mob.setLeashHolder(player);
             });
-            world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
             break;
         }
     }
