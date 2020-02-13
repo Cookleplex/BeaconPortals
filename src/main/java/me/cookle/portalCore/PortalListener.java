@@ -1,17 +1,22 @@
 package me.cookle.portalCore;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
 public class PortalListener implements Listener {
@@ -36,9 +41,11 @@ public class PortalListener implements Listener {
         List<String> thisID = Main.getPortalID(block.getLocation());
         if (thisID == null) return;
 
+        World world = player.getWorld();
+
         if (!plugin.getConfig().contains(thisID.toString())) {
             plugin.getConfig().set(thisID.toString(), Main.getStringFromLocation(block.getLocation()));
-            player.getWorld().playSound(block.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 16, 1);
+            world.playSound(block.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 16, 1);
         }
 
         for (int t = 1; t < 10; t++) {
@@ -71,14 +78,32 @@ public class PortalListener implements Listener {
             }
 
             Location loc = player.getLocation();
-            player.getWorld().playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+
+            Collection<Mob> leashedEntities = world.getNearbyEntities(
+                    BoundingBox.of(
+                            block.getLocation(), 3,3,3
+                    ))
+                    .parallelStream().filter(entity -> entity instanceof Mob)
+                    .map(entity -> (Mob)entity)
+                    .filter(mob-> mob.isLeashed() && mob.getLeashHolder().equals(player))
+                    .collect(Collectors.toSet());
+
+            world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
 
             destinationLocation.setPitch(loc.getPitch());
             destinationLocation.setYaw(loc.getYaw());
 
             destinationLocation.add(loc.getX()-loc.getBlockX(), 1, loc.getZ()-loc.getBlockZ());
             player.teleport(destinationLocation);
-            player.getWorld().playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+
+            Location locOffset = destinationLocation.subtract(loc);
+            leashedEntities.forEach(mob -> {
+                Location mobLocation = mob.getLocation();
+                Location mobDestination = mobLocation.add(locOffset);
+                mob.teleport(mobDestination);
+                mob.setLeashHolder(player);
+            });
+            world.playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
             break;
         }
     }
