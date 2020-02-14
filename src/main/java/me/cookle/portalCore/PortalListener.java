@@ -1,17 +1,22 @@
 package me.cookle.portalCore;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.BoundingBox;
 import org.jetbrains.annotations.NotNull;
 
 public class PortalListener implements Listener {
@@ -33,16 +38,19 @@ public class PortalListener implements Listener {
         Beacon beacon = (Beacon) block.getState();
         if (beacon.getTier() == 0) return;
 
-        List<String> thisID = Main.getPortalID(block.getLocation());
+        Location originLocation = block.getLocation();
+        List<String> thisID = Main.getPortalID(originLocation);
         if (thisID == null) return;
 
+        World world = player.getWorld();
+
         if (!plugin.getConfig().contains(thisID.toString())) {
-            plugin.getConfig().set(thisID.toString(), Main.getStringFromLocation(block.getLocation()));
-            player.getWorld().playSound(block.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 16, 1);
+            plugin.getConfig().set(thisID.toString(), Main.getStringFromLocation(originLocation));
+            world.playSound(originLocation, Sound.ITEM_FLINTANDSTEEL_USE, 16, 1);
         }
 
         for (int t = 1; t < 10; t++) {
-            List<String> otherID = Main.getPortalID(block.getLocation().clone().add(0.0, t, 0.0));
+            List<String> otherID = Main.getPortalID(originLocation.clone().add(0.0, t, 0.0));
             if (otherID == null) continue;
 
             String strLoc = plugin.getConfig().getString(otherID.toString());
@@ -50,6 +58,7 @@ public class PortalListener implements Listener {
 
             Location destinationLocation = Main.getLocationFromString(strLoc);
             Block destinationBlock = destinationLocation.getBlock();
+
             if (destinationBlock.getType() != Material.BEACON) {
                 plugin.getConfig().set(otherID.toString(), null);
                 continue;
@@ -70,15 +79,30 @@ public class PortalListener implements Listener {
                 continue;
             }
 
-            Location loc = player.getLocation();
-            player.getWorld().playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+            Location locationOffset = destinationLocation.subtract(originLocation);
 
-            destinationLocation.setPitch(loc.getPitch());
-            destinationLocation.setYaw(loc.getYaw());
+            Collection<Mob> leashedEntities = world.getNearbyEntities(
+                    BoundingBox.of(
+                            originLocation, 3,3,3
+                    ))
+                    .parallelStream().filter(entity -> entity instanceof Mob)
+                    .map(entity -> (Mob)entity)
+                    .filter(mob-> mob.isLeashed() && mob.getLeashHolder().equals(player))
+                    .collect(Collectors.toSet());
 
-            destinationLocation.add(loc.getX()-loc.getBlockX(), 1, loc.getZ()-loc.getBlockZ());
-            player.teleport(destinationLocation);
-            player.getWorld().playSound(loc, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+            world.playSound(originLocation, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+
+            Location playerDestination = player.getLocation();
+            playerDestination.add(locationOffset);
+            player.teleport(playerDestination);
+            world.playSound(playerDestination, Sound.ENTITY_ENDERMAN_TELEPORT, 16, 16);
+
+            leashedEntities.forEach(mob -> {
+                Location mobLocation = mob.getLocation();
+                Location mobDestination = mobLocation.add(locationOffset);
+                mob.teleport(mobDestination);
+                mob.setLeashHolder(player);
+            });
             break;
         }
     }
