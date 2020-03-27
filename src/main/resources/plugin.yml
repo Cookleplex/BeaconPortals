@@ -5,7 +5,7 @@ description: "Enables teleportation between Beacons by players"
 author: CookleTheThird
 website: https://www.spigotmc.org/resources/beacon-portals.66292/
 
-main: me.cookle.portalCore.Core
+main: me.cookle.portalCore.PortalCore
 api-version: ${spigot.api.version}
 load: POSTWORLD
 prefix: BeaconPortal
